@@ -23,7 +23,7 @@
     "adlcom",
     "mxl"
   ],
-  "author": "ADLcom Limited",
+  "author": "ADL Limited",
   "license": "UNLICENSED",
   "dependencies": {
     "@fastify/cors": "^8.4.0",
