@@ -1,5 +1,7 @@
 import { logger } from '../utils/logger';
 import { kafkaProducer } from '../kafka/producer';
+import { enrichEvent } from '../utils/eventEnricher';
+import { FastifyRequest } from 'fastify';
 
 export interface TelemetryEvent {
   sessionId: string;
@@ -16,15 +18,10 @@ export interface TelemetryEvent {
 }
 
 class TelemetryService {
-  async processTelemetry(event: TelemetryEvent): Promise<void> {
+  async processTelemetry(event: TelemetryEvent, request?: FastifyRequest): Promise<void> {
     try {
       // Enrich event with server-side data
-      const enrichedEvent = {
-        ...event,
-        serverTimestamp: Date.now(),
-        ipAddress: '', // TODO: Extract from request
-        geolocation: null, // TODO: Get from IP
-      };
+      const enrichedEvent = await enrichEvent(event, request);
 
       // Send to Kafka
       await kafkaProducer.send({

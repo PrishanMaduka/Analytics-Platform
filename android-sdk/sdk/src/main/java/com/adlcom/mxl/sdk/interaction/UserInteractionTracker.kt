@@ -107,24 +107,57 @@ object UserInteractionTracker {
      * Store screen view event.
      */
     private fun storeScreenView(event: ScreenViewEvent, sdkState: SdkState) {
-        // TODO: Store in database
-        Logger.d("Screen view: ${event.screenName}")
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            try {
+                sdkState.storageManager.storeEvent(
+                    eventType = "interaction",
+                    eventData = event,
+                    sessionId = event.sessionId,
+                    userId = event.userId
+                )
+                Logger.d("Screen view stored: ${event.screenName}")
+            } catch (e: Exception) {
+                Logger.e("Error storing screen view event", e)
+            }
+        }
     }
 
     /**
      * Store tap event.
      */
     private fun storeTapEvent(event: TapEvent, sdkState: SdkState) {
-        // TODO: Store in database
-        Logger.d("Tap event: ${event.viewClass} at (${event.x}, ${event.y})")
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            try {
+                sdkState.storageManager.storeEvent(
+                    eventType = "interaction",
+                    eventData = event,
+                    sessionId = event.sessionId,
+                    userId = event.userId
+                )
+                Logger.d("Tap event stored: ${event.viewClass} at (${event.x}, ${event.y})")
+            } catch (e: Exception) {
+                Logger.e("Error storing tap event", e)
+            }
+        }
     }
 
     /**
      * Store custom event.
      */
     private fun storeCustomEvent(event: CustomEvent, sdkState: SdkState) {
-        // TODO: Store in database
-        Logger.d("Custom event: ${event.eventName}")
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            try {
+                sdkState.storageManager.storeEvent(
+                    eventType = "interaction",
+                    eventData = event,
+                    sessionId = event.sessionId,
+                    userId = event.userId
+                )
+                Logger.d("Custom event stored: ${event.eventName}")
+            } catch (e: Exception) {
+                Logger.e("Error storing custom event", e)
+            }
+        }
     }
 }
 

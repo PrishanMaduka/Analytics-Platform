@@ -84,8 +84,19 @@ class NetworkMonitorInterceptor(
      * Store network event.
      */
     private fun storeNetworkEvent(event: NetworkEvent, sdkState: SdkState) {
-        // TODO: Store in database and queue for upload
-        Logger.d("Network event: ${event.method} ${event.url} - ${event.statusCode} (${event.duration}ms)")
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            try {
+                sdkState.storageManager.storeEvent(
+                    eventType = "network",
+                    eventData = event,
+                    sessionId = event.sessionId,
+                    userId = event.userId
+                )
+                Logger.d("Network event stored: ${event.method} ${event.url} - ${event.statusCode} (${event.duration}ms)")
+            } catch (e: Exception) {
+                Logger.e("Error storing network event", e)
+            }
+        }
     }
 }
 

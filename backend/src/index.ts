@@ -12,6 +12,7 @@ import { startConsumers } from './kafka/consumer';
 import { clickhouseService } from './services/clickhouse';
 import { dataRetentionService } from './services/dataRetention';
 import { setupSwagger } from './swagger';
+import { metricsCollector } from './utils/metrics';
 
 const server = Fastify({
   logger: false, // Using custom logger
@@ -51,6 +52,12 @@ export async function build() {
   await server.register(telemetryRoutes, { prefix: '/api/v1' });
   await server.register(configRoutes, { prefix: '/api/v1' });
   await server.register(gdprRoutes, { prefix: '/api/v1' });
+
+  // Metrics endpoint
+  server.get('/metrics', async (request, reply) => {
+    reply.type('text/plain');
+    return metricsCollector.getPrometheusFormat();
+  });
 
   return server;
 }

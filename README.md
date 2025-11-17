@@ -49,10 +49,12 @@ try MxLSdk.initialize(configuration: SdkConfiguration(
 
 ### Documentation
 
+- **[User Manual](./docs/USER_MANUAL.md)** - Complete guide for developers (START HERE)
 - [Android Integration Guide](./docs/android-integration-guide.md)
 - [iOS Integration Guide](./docs/ios-integration-guide.md)
 - [API Documentation](./docs/API.md)
 - [Architecture Overview](./docs/architecture.md)
+- [Deployment Guide](./docs/DEPLOYMENT.md)
 - [FAQ](./docs/FAQ.md)
 - [Best Practices](./docs/best-practices.md)
 

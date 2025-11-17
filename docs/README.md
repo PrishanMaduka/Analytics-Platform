@@ -2,6 +2,10 @@
 
 Welcome to the MxL (Monitoring Experience Layer) SDK documentation.
 
+## 📖 Start Here
+
+- **[User Manual](./USER_MANUAL.md)** - Complete user guide with installation, configuration, usage examples, and troubleshooting
+
 ## Getting Started
 
 - [Android Integration Guide](./android-integration-guide.md)

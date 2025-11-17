@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { telemetryService } from '../services/telemetry';
 import { logger } from '../utils/logger';
+import { apiKeyAuth } from '../middleware/apiKeyAuth';
 
 const telemetrySchema = z.object({
   sessionId: z.string(),
@@ -18,11 +19,14 @@ const telemetrySchema = z.object({
 });
 
 export async function telemetryRoutes(fastify: FastifyInstance) {
+  // Apply API key authentication to all telemetry routes
+  fastify.addHook('preHandler', apiKeyAuth);
+
   fastify.post('/telemetry', async (request, reply) => {
     try {
       const body = telemetrySchema.parse(request.body);
       
-      await telemetryService.processTelemetry(body);
+      await telemetryService.processTelemetry(body, request);
       
       return {
         success: true,

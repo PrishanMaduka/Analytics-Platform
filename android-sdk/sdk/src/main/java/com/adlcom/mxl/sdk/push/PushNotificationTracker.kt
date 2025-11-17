@@ -83,8 +83,19 @@ object PushNotificationTracker {
      * Store push event.
      */
     private fun storePushEvent(event: PushEvent, sdkState: SdkState) {
-        // TODO: Store in database
-        Logger.d("Push event: ${event.eventType} for notification ${event.notificationId}")
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            try {
+                sdkState.storageManager.storeEvent(
+                    eventType = "interaction",
+                    eventData = event,
+                    sessionId = event.sessionId,
+                    userId = event.userId
+                )
+                Logger.d("Push event stored: ${event.eventType} for notification ${event.notificationId}")
+            } catch (e: Exception) {
+                Logger.e("Error storing push event", e)
+            }
+        }
     }
 }
 

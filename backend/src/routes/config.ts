@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { redisService } from '../services/redis';
 import { logger } from '../utils/logger';
+import { prisma } from '../db/prisma';
 
 const configSchema = z.object({
   version: z.number(),
@@ -14,24 +15,43 @@ export async function configRoutes(fastify: FastifyInstance) {
   // Get remote config
   fastify.get('/config', async (request, reply) => {
     try {
+      const environment = (request.query as any)?.environment || 'production';
+
       // Check cache first
-      const cached = await redisService.getCachedConfig('remote');
+      const cacheKey = `remote:${environment}`;
+      const cached = await redisService.getCachedConfig(cacheKey);
       if (cached) {
         return cached;
       }
 
-      // TODO: Fetch from database
-      const defaultConfig = {
-        version: 1,
-        samplingRate: 1.0,
-        featureFlags: {},
-        config: {},
-      };
+      // Fetch from database
+      const configRecord = await prisma.remoteConfig.findFirst({
+        where: {
+          key: 'remote',
+          environment: environment,
+        },
+        orderBy: {
+          version: 'desc',
+        },
+      });
+
+      let configData;
+      if (configRecord) {
+        configData = configRecord.value as any;
+      } else {
+        // Default config if none exists
+        configData = {
+          version: 1,
+          samplingRate: 1.0,
+          featureFlags: {},
+          config: {},
+        };
+      }
 
       // Cache for 1 hour
-      await redisService.cacheConfig('remote', defaultConfig, 3600);
+      await redisService.cacheConfig(cacheKey, configData, 3600);
 
-      return defaultConfig;
+      return configData;
     } catch (error) {
       logger.error('Error getting config:', error);
       return reply.code(500).send({
@@ -45,14 +65,52 @@ export async function configRoutes(fastify: FastifyInstance) {
   fastify.post('/config', async (request, reply) => {
     try {
       const body = configSchema.parse(request.body);
+      const environment = (request.body as any)?.environment || 'production';
 
-      // TODO: Save to database
-      // TODO: Invalidate cache
-      await redisService.cacheConfig('remote', body, 3600);
+      // Get current version
+      const currentConfig = await prisma.remoteConfig.findFirst({
+        where: {
+          key: 'remote',
+          environment: environment,
+        },
+        orderBy: {
+          version: 'desc',
+        },
+      });
+
+      const newVersion = currentConfig ? currentConfig.version + 1 : 1;
+
+      // Save to database
+      await prisma.remoteConfig.upsert({
+        where: {
+          key: 'remote',
+        },
+        update: {
+          value: body,
+          version: newVersion,
+          environment: environment,
+        },
+        create: {
+          key: 'remote',
+          value: body,
+          version: newVersion,
+          environment: environment,
+        },
+      });
+
+      // Invalidate cache for all environments
+      const cacheKey = `remote:${environment}`;
+      await redisService.cacheConfig(cacheKey, body, 3600);
+
+      logger.info('Remote config updated', {
+        environment,
+        version: newVersion,
+      });
 
       return {
         success: true,
         message: 'Config updated',
+        version: newVersion,
       };
     } catch (error) {
       if (error instanceof z.ZodError) {

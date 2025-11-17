@@ -83,8 +83,22 @@ internal class PerformanceMonitor {
      * Start resource monitoring (CPU, memory).
      */
     private static func startResourceMonitoring() {
-        // Monitor resources periodically
-        // TODO: Implement periodic monitoring
+        // Monitor resources periodically using Timer
+        Timer.scheduledTimer(withTimeInterval: 300.0, repeats: true) { _ in
+            // Collect CPU usage
+            let cpuUsage = getCpuUsage()
+            reportMetric("cpu_usage", cpuUsage, "%")
+            
+            // Collect memory usage
+            let memoryInfo = getMemoryUsage()
+            reportMetric("memory_virtual", Double(memoryInfo.virtualSize) / 1024.0 / 1024.0, "MB")
+            reportMetric("memory_resident", Double(memoryInfo.residentSize) / 1024.0 / 1024.0, "MB")
+            
+            // Collect thread count
+            let threadCount = getThreadCount()
+            reportMetric("thread_count", Double(threadCount), "threads")
+        }
+        
         Logger.shared.info("Resource monitoring started")
     }
     
@@ -187,8 +201,30 @@ internal class PerformanceMonitor {
      * Store performance event.
      */
     private static func storePerformanceEvent(_ event: PerformanceEvent, sdkState: SdkState) {
-        // TODO: Store in database and queue for upload
-        Logger.shared.debug("Performance event: \(event.metric) = \(event.value) \(event.unit)")
+        let eventData: [String: Any] = [
+            "sessionId": event.sessionId,
+            "userId": event.userId ?? NSNull(),
+            "eventType": event.eventType,
+            "metric": event.metric,
+            "value": event.value,
+            "unit": event.unit,
+            "timestamp": event.timestamp,
+            "deviceInfo": [
+                "platform": event.deviceInfo.platform,
+                "osVersion": event.deviceInfo.osVersion,
+                "deviceModel": event.deviceInfo.deviceModel,
+                "appVersion": event.deviceInfo.appVersion
+            ]
+        ]
+        
+        sdkState.storageManager.storeEvent(
+            eventType: "performance",
+            eventData: eventData,
+            sessionId: event.sessionId,
+            userId: event.userId
+        )
+        
+        Logger.shared.debug("Performance event stored: \(event.metric) = \(event.value) \(event.unit)")
     }
     
     /**

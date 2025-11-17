@@ -34,5 +34,13 @@ export const config = {
   
   // API
   apiKeyHeader: process.env.API_KEY_HEADER || 'x-api-key',
+  
+  // S3/MinIO for archiving
+  s3Endpoint: process.env.S3_ENDPOINT || '',
+  s3AccessKey: process.env.S3_ACCESS_KEY || '',
+  s3SecretKey: process.env.S3_SECRET_KEY || '',
+  s3Bucket: process.env.S3_BUCKET || 'mxl-archive',
+  s3Region: process.env.S3_REGION || 'us-east-1',
+  enableArchiving: process.env.ENABLE_ARCHIVING === 'true',
 };
 

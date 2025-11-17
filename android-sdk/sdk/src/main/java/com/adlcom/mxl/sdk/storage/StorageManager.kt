@@ -40,12 +40,12 @@ class StorageManager private constructor(
     /**
      * Store telemetry event.
      */
-    suspend fun storeEvent(eventType: String, eventData: Any) {
+    suspend fun storeEvent(eventType: String, eventData: Any, sessionId: String, userId: String? = null) {
         try {
             val eventJson = gson.toJson(eventData)
             val entity = TelemetryEventEntity(
-                sessionId = "", // Will be set by caller
-                userId = null,
+                sessionId = sessionId,
+                userId = userId,
                 eventType = eventType,
                 eventData = eventJson,
                 timestamp = System.currentTimeMillis()
@@ -159,7 +159,19 @@ class StorageManager private constructor(
  */
 class UploadWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
-        // TODO: Get StorageManager instance and call flushEvents
-        return Result.success()
+        return try {
+            // Get SDK state to access storage manager
+            val sdkState = com.adlcom.mxl.sdk.MxLSdk.getSdkState()
+            if (sdkState != null) {
+                sdkState.storageManager.flushEvents()
+                Result.success()
+            } else {
+                Logger.w("SDK not initialized, cannot flush events")
+                Result.retry()
+            }
+        } catch (e: Exception) {
+            Logger.e("Error in UploadWorker", e)
+            Result.retry()
+        }
     }
 }

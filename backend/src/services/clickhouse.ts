@@ -145,6 +145,19 @@ class ClickHouseService {
   }
 
   /**
+   * Execute a command (for ALTER, DROP, etc.).
+   */
+  async exec(query: string): Promise<void> {
+    try {
+      const client = getClient();
+      await client.exec(query);
+    } catch (error) {
+      logger.error('Error executing ClickHouse command:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get aggregated metrics.
    */
   async getAggregatedMetrics(

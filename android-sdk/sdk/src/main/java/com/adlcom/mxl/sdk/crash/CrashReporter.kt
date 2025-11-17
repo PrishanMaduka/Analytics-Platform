@@ -112,8 +112,19 @@ object CrashReporter {
      * Store crash event for later upload.
      */
     private fun storeCrash(crashEvent: CrashEvent, sdkState: SdkState) {
-        // TODO: Store in database and queue for upload
-        Logger.e("Crash captured: ${crashEvent.exceptionType}")
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            try {
+                sdkState.storageManager.storeEvent(
+                    eventType = "crash",
+                    eventData = crashEvent,
+                    sessionId = crashEvent.sessionId,
+                    userId = crashEvent.userId
+                )
+                Logger.d("Crash event stored: ${crashEvent.exceptionType}")
+            } catch (e: Exception) {
+                Logger.e("Error storing crash event", e)
+            }
+        }
     }
 
     /**

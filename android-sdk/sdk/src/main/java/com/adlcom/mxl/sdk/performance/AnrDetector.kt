@@ -84,8 +84,20 @@ object AnrDetector {
             timestamp = System.currentTimeMillis()
         )
 
-        // TODO: Store ANR event
-        Logger.w("ANR detected: ${thread.name} in state ${thread.state}")
+        // Store ANR event
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            try {
+                sdkState.storageManager.storeEvent(
+                    eventType = "performance",
+                    eventData = anrEvent,
+                    sessionId = anrEvent.sessionId,
+                    userId = anrEvent.userId
+                )
+                Logger.w("ANR event stored: ${thread.name} in state ${thread.state}")
+            } catch (e: Exception) {
+                Logger.e("Error storing ANR event", e)
+            }
+        }
     }
 
     /**

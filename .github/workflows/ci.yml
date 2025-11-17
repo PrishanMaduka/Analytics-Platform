@@ -1,0 +1,208 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  backend-tests:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: mxl
+          POSTGRES_PASSWORD: mxl_password
+          POSTGRES_DB: mxl
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      
+      - name: Install pnpm
+        run: npm install -g pnpm
+      
+      - name: Install dependencies
+        working-directory: ./backend
+        run: pnpm install --frozen-lockfile
+      
+      - name: Generate Prisma Client
+        working-directory: ./backend
+        run: pnpm prisma:generate
+      
+      - name: Run database migrations
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql://mxl:mxl_password@localhost:5432/mxl
+        run: pnpm prisma migrate deploy
+      
+      - name: Run tests
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql://mxl:mxl_password@localhost:5432/mxl
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          NODE_ENV: test
+        run: pnpm test
+      
+      - name: Run lint
+        working-directory: ./backend
+        run: pnpm lint
+
+  frontend-tests:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      
+      - name: Install pnpm
+        run: npm install -g pnpm
+      
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: pnpm install --frozen-lockfile
+      
+      - name: Run tests
+        working-directory: ./frontend
+        run: pnpm test
+      
+      - name: Run lint
+        working-directory: ./frontend
+        run: pnpm lint
+      
+      - name: Build
+        working-directory: ./frontend
+        run: pnpm build
+
+  android-tests:
+    name: Android SDK Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      
+      - name: Grant execute permission for gradlew
+        working-directory: ./android-sdk
+        run: chmod +x gradlew
+      
+      - name: Run tests
+        working-directory: ./android-sdk
+        run: ./gradlew test
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [backend-tests]
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: mxl
+          POSTGRES_PASSWORD: mxl_password
+          POSTGRES_DB: mxl
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      
+      - name: Install pnpm
+        run: npm install -g pnpm
+      
+      - name: Install dependencies
+        working-directory: ./backend
+        run: pnpm install --frozen-lockfile
+      
+      - name: Install integration test dependencies
+        working-directory: ./test-integration
+        run: npm install
+      
+      - name: Generate Prisma Client
+        working-directory: ./backend
+        run: pnpm prisma:generate
+      
+      - name: Run database migrations
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql://mxl:mxl_password@localhost:5432/mxl
+        run: pnpm prisma migrate deploy
+      
+      - name: Start backend
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql://mxl:mxl_password@localhost:5432/mxl
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          NODE_ENV: test
+        run: |
+          pnpm build
+          pnpm start &
+          sleep 5
+      
+      - name: Run integration tests
+        working-directory: ./test-integration
+        env:
+          API_URL: http://localhost:3000
+        run: npm test
+

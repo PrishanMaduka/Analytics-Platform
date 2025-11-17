@@ -78,8 +78,18 @@ export async function gdprRoutes(fastify: FastifyInstance) {
         },
       });
 
-      // TODO: Delete events from ClickHouse
-      // Note: ClickHouse doesn't support DELETE easily, may need to mark as deleted
+      // Delete events from ClickHouse
+      // ClickHouse doesn't support DELETE easily, so we use ALTER TABLE DELETE
+      try {
+        await clickhouseService.exec(
+          `ALTER TABLE telemetry_events DELETE WHERE user_id = '${userId}'`
+        );
+        logger.info(`ClickHouse events deleted for user: ${userId}`);
+      } catch (error) {
+        // If ALTER DELETE is not supported, log and continue
+        // In production, you might want to use a different approach like marking as deleted
+        logger.warn(`Could not delete ClickHouse events for user ${userId}:`, error);
+      }
 
       logger.info(`User data deleted for user: ${userId}`);
 
@@ -132,7 +142,16 @@ export async function gdprRoutes(fastify: FastifyInstance) {
         },
       });
 
-      // TODO: Anonymize events in ClickHouse
+      // Anonymize events in ClickHouse
+      try {
+        await clickhouseService.exec(
+          `ALTER TABLE telemetry_events UPDATE user_id = '${anonymousId}' WHERE user_id = '${userId}'`
+        );
+        logger.info(`ClickHouse events anonymized for user: ${userId}`);
+      } catch (error) {
+        // If ALTER UPDATE is not supported, log and continue
+        logger.warn(`Could not anonymize ClickHouse events for user ${userId}:`, error);
+      }
 
       logger.info(`User data anonymized for user: ${userId}`);
 

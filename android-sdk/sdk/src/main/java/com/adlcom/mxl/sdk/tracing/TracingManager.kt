@@ -89,10 +89,39 @@ class TracingManager private constructor(
         val context = Context.current()
         val headers = mutableMapOf<String, String>()
         
-        // Extract trace context for HTTP headers
-        // TODO: Implement proper context propagation
+        // Extract trace context for HTTP headers using W3C Trace Context
+        val propagator = W3CTraceContextPropagator.getInstance()
+        propagator.inject(
+            context,
+            headers,
+            object : io.opentelemetry.context.propagation.TextMapSetter<MutableMap<String, String>> {
+                override fun set(carrier: MutableMap<String, String>, key: String, value: String) {
+                    carrier[key] = value
+                }
+            }
+        )
         
         return headers
+    }
+    
+    /**
+     * Extract trace context from headers.
+     */
+    fun extractTraceContext(headers: Map<String, String>): Context {
+        val propagator = W3CTraceContextPropagator.getInstance()
+        return propagator.extract(
+            Context.current(),
+            headers,
+            object : io.opentelemetry.context.propagation.TextMapGetter<Map<String, String>> {
+                override fun keys(carrier: Map<String, String>): Iterable<String> {
+                    return carrier.keys
+                }
+                
+                override fun get(carrier: Map<String, String>, key: String): String? {
+                    return carrier[key]
+                }
+            }
+        )
     }
 }
 
