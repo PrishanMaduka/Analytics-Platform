@@ -1,0 +1,44 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  email     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  sessions Session[]
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  sessionId String   @unique
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  startedAt DateTime @default(now())
+  endedAt   DateTime?
+  deviceInfo Json?
+  
+  @@index([sessionId])
+  @@index([userId])
+}
+
+model RemoteConfig {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       Json
+  version     Int      @default(1)
+  environment String   @default("production")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([key, environment])
+}
+

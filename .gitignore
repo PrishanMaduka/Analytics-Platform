@@ -1,0 +1,38 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build artifacts
+build/
+dist/
+*.apk
+*.aab
+*.ipa
+*.dSYM.zip
+
+# Dependencies
+node_modules/
+.gradle/
+*.iml
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
